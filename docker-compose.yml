@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: vending-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: vending
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: [
+      "--default-authentication-plugin=mysql_native_password"
+    ]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      timeout: 20s
+      retries: 10
+
+  api:
+    build: ./api
+    container_name: vending-api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "mysql+pymysql://appuser:apppass@vending-db/vending"
+    volumes:
+      - ./api:/app
+
+  frontend:
+    build: ./vending-ui        # ✅ มี build แค่ครั้งเดียว
+    container_name: vending-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://api:8000
+
+
+  adminer:
+    image: adminer
+    container_name: vending-adminer
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_data:
