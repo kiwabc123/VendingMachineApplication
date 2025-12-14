@@ -3,7 +3,7 @@ import axios from "axios"
 import VendingScreen from "./components/VendingScreen"
 import moneyStyle from "./helper/colorChange.jsx"
 import MoneyIcon from "./components/MoneyIcon"
-
+import useToast from "./hooks/useToast";
 // API endpoint configuration
 // When running Docker Compose: use http://localhost:8000 (API in container)
 // When both frontend and API in Docker: use http://api:8000
@@ -17,10 +17,9 @@ export default function App() {
   const [insertedMoney, setInsertedMoney] = useState(0)
   const [sessionId, setSessionId] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
   const [currentStep, setCurrentStep] = useState(0) // 0: products, 1: payment, 2: success
   const [purchaseResult, setPurchaseResult] = useState(null)
-
+  const toast = useToast();
   // Fetch products and money stock on mount
   useEffect(() => {
     fetchProducts()
@@ -32,7 +31,7 @@ export default function App() {
       const res = await axios.get(`${API_BASE}/products`)
       setProducts(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message)
+      toast.error(err.response?.data?.detail || err.message);
     }
   }
 
@@ -41,13 +40,12 @@ export default function App() {
       const res = await axios.get(`${API_BASE}/money-stock`)
       setMoneyStock(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message)
+      toast.error(err.response?.data?.detail || err.message);
     }
   }
 
   const selectProduct = async (product) => {
     setLoading(true)
-    setError(null)
     try {
       const res = await axios.post(`${API_BASE}/select-product`, { product_id: product.id })
       setSessionId(res.data.session_id)
@@ -55,7 +53,7 @@ export default function App() {
       setInsertedMoney(0)
       setCurrentStep(1) // Move to payment step
     } catch (err) {
-      setError(err.response?.data?.detail || err.message)
+       toast.error(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false)
     }
@@ -64,12 +62,12 @@ export default function App() {
   const insertMoney = async (denom) => {
     if (!sessionId) return
     setLoading(true)
-    setError(null)
+
     try {
       const res = await axios.post(`${API_BASE}/insert-money`, { session_id: sessionId, denom })
       setInsertedMoney(res.data.inserted_amount)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message)
+      toast.error(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false)
     }
@@ -85,60 +83,13 @@ export default function App() {
   const confirmPurchase = async () => {
     if (!sessionId) return
     setLoading(true)
-    setError(null)
+
     try {
       const res = await axios.post(`${API_BASE}/confirm`, { session_id: sessionId })
-      // const res = {
-      //   data: {
-      //     "status": "SUCCESS",
-      //     "product": {
-      //       "id": 4,
-      //       "name": "Lemon Tea"
-      //     },
-      //     "paid": 100,
-      //     "price": 20,
-      //     "change": 80,
-      //     "change_detail": [
-      //       {
-      //         "denom": 50,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 20,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 10,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 100,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 500,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 1000,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 1,
-      //         "qty": 1
-      //       },
-      //       {
-      //         "denom": 5,
-      //         "qty": 1
-      //       }
-      //     ],
-      //     "remaining_stock": 26
-      //   }
-      // }
       setPurchaseResult(res.data)
       setCurrentStep(2) // Move to success step
     } catch (err) {
-      setError(err.response?.data?.detail || err.message)
+      toast.error(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false)
     }
@@ -169,8 +120,6 @@ export default function App() {
 
       {/* Main */}
       <main className="flex-1 p-6 overflow-hidden">
-        {error && <p className="text-cafe-danger mb-4">{error}</p>}
-
         {/* Step 0: Product Selection */}
         {currentStep === 0 && (
           <div className="h-full">

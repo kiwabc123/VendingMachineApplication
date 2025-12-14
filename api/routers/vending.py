@@ -61,7 +61,7 @@ def insert_money(request: InsertMoneyRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Denomination not accepted")
     
     session["paid"] += request.denom
-    money_stock.quantity += 1  # เพิ่มจำนวนเงินในเครื่อง
+    money_stock.quantity += 1  
     
     status = "NOT_ENOUGH"
     if session["paid"] >= session["price"]:
@@ -153,65 +153,3 @@ def get_money_stock(db: Session = Depends(get_db)):
         }
         for stock in money_stocks
     ]
-
-# Pydantic models for money stock management
-class MoneyStockUpdate(BaseModel):
-    quantity: int
-
-class MoneyStockCreate(BaseModel):
-    denom: int
-    quantity: int
-    type: str
-
-# POST /money-stock
-@router.post("/money-stock")
-def create_money_stock(stock: MoneyStockCreate, db: Session = Depends(get_db)):
-    # Check if denomination already exists
-    existing = db.query(MoneyStock).filter(MoneyStock.denom == stock.denom).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Denomination already exists")
-
-    new_stock = MoneyStock(
-        denom=stock.denom,
-        quantity=stock.quantity,
-        type=stock.type
-    )
-
-    db.add(new_stock)
-    db.commit()
-    db.refresh(new_stock)
-
-    return {
-        "denom": new_stock.denom,
-        "quantity": new_stock.quantity,
-        "type": new_stock.type
-    }
-
-# PUT /money-stock/{denom}
-@router.put("/money-stock/{denom}")
-def update_money_stock(denom: int, stock_update: MoneyStockUpdate, db: Session = Depends(get_db)):
-    stock = db.query(MoneyStock).filter(MoneyStock.denom == denom).first()
-    if not stock:
-        raise HTTPException(status_code=404, detail="Money stock denomination not found")
-
-    stock.quantity = stock_update.quantity
-    db.commit()
-    db.refresh(stock)
-
-    return {
-        "denom": stock.denom,
-        "quantity": stock.quantity,
-        "type": stock.type
-    }
-
-# DELETE /money-stock/{denom}
-@router.delete("/money-stock/{denom}")
-def delete_money_stock(denom: int, db: Session = Depends(get_db)):
-    stock = db.query(MoneyStock).filter(MoneyStock.denom == denom).first()
-    if not stock:
-        raise HTTPException(status_code=404, detail="Money stock denomination not found")
-
-    db.delete(stock)
-    db.commit()
-
-    return {"message": "Money stock denomination deleted successfully"}

@@ -35,7 +35,7 @@ services:
       - ./api:/app
 
   frontend:
-    build: ./vending-ui        # ✅ มี build แค่ครั้งเดียว
+    build: ./vending-ui
     container_name: vending-frontend
     ports:
       - "3000:80"

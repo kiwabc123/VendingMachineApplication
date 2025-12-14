@@ -45,6 +45,7 @@ react-dom        # React DOM rendering
 axios            # HTTP client (1.13.2)
 tailwindcss      # CSS framework (3.4.19)
 vite             # Build tool (4.4.5)
+react-hot-toast  # toast notification (2.6.0)
 ```
 
 ### Infrastructure
